@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="ca">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>La Ruleta dels Exàmens d'Excel</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            background-color: #f5f6fa;
+            margin: 0;
+        }
+        h1 { color: #2f3542; margin-bottom: 20px; }
+        .ruleta-container { position: relative; width: 450px; height: 450px; }
+        .marcador {
+            position: absolute; top: -25px; left: 50%; transform: translateX(-50%);
+            width: 0; height: 0; border-left: 20px solid transparent; border-right: 20px solid transparent;
+            border-top: 35px solid #ff4757; z-index: 10;
+        }
+        .ruleta {
+            width: 100%; height: 100%; border-radius: 50%; border: 10px solid #2f3542;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.25);
+            background: conic-gradient(
+                #ff6b6b 0deg 30deg,    #4bc0c0 30deg 60deg, 
+                #ffcd56 60deg 90deg,   #4bc0c0 90deg 120deg,
+                #36a2eb 120deg 150deg, #4bc0c0 150deg 180deg,
+                #9966ff 180deg 210deg, #4bc0c0 210deg 240deg,
+                #ff9f40 240deg 270deg, #4bc0c0 270deg 300deg,
+                #c9cbcf 300deg 330deg, #ff6b6b 330deg 360deg
+            );
+            transition: transform 30s cubic-bezier(0.1, 0.8, 0.1, 1);
+        }
+        button {
+            margin-top: 35px; padding: 15px 40px; font-size: 20px; font-weight: bold;
+            color: white; background-color: #10ac84; border: none; border-radius: 30px;
+            cursor: pointer; box-shadow: 0 5px 10px rgba(0,0,0,0.15); transition: 0.2s;
+        }
+        button:hover { background-color: #1dd1a1; transform: scale(1.05); }
+        button:disabled { background-color: #95a5a6; cursor: not-allowed; }
+        #resultat { margin-top: 25px; font-size: 24px; font-weight: bold; color: #2f3542; height: 35px; text-align: center; }
+    </style>
+</head>
+<body>
+
+    <h1>Sorteig d'Exàmens d'Excel 📊</h1>
+
+    <div class="ruleta-container">
+        <div class="marcador"></div>
+        <div class="ruleta" id="ruleta"></div>
+    </div>
+
+    <button id="botó" onclick="girarRuleta()">Girar la Ruleta</button>
+
+    <div id="resultat"></div>
+
+    <script>
+        const examens = [
+            { nom: "Exercici Excel 1.2", angleMin: 0,   angleMax: 30 },
+            { nom: "Exercici Excel 1.3", angleMin: 30,  angleMax: 60 },
+            { nom: "Exercici Excel 1.4", angleMin: 60,  angleMax: 90 },
+            { nom: "Exercici Excel 1.5", angleMin: 90,  angleMax: 120 },
+            { nom: "Exercici Excel 1.6", angleMin: 120, angleMax: 150 },
+            { nom: "Exercici Excel 1.8", angleMin: 150, angleMax: 180 },
+            { nom: "Exercici Excel 1.9", angleMin: 180, angleMax: 210 },
+            { nom: "Exercici Excel 1.10", angleMin: 210, angleMax: 240 },
+            { nom: "Exercici Excel 1.11", angleMin: 240, angleMax: 270 },
+            { nom: "Exercici Excel 1.12", angleMin: 270, angleMax: 300 },
+            { nom: "Exercici Excel 2.2", angleMin: 300, angleMax: 330 },
+            { nom: "Exercici Excel 3.4", angleMin: 330, angleMax: 360 }
+        ];
+
+        let trucat = false;
+        let jaHaGirat = false;
+
+        // Crear àudio del soroll de la ruleta
+        function crearSonRuleta() {
+            const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            const oscillator = audioContext.createOscillator();
+            const gainNode = audioContext.createGain();
+            
+            oscillator.connect(gainNode);
+            gainNode.connect(audioContext.destination);
+            
+            // Soroll aleatori (ruido blanco simulat)
+            oscillator.type = 'square';
+            gainNode.gain.setValueAtTime(0.1, audioContext.currentTime);
+            gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 30);
+            
+            oscillator.frequency.setValueAtTime(800, audioContext.currentTime);
+            oscillator.frequency.randomizationMaxValue = 200;
+            
+            oscillator.start(audioContext.currentTime);
+            oscillator.stop(audioContext.currentTime + 30);
+        }
+
+        // EL TEU COMANDAMENT A DISTÀNCIA:
+        // Si tu prems la tecla "t" (de trucar) al teu teclat abans de clicar el botó, la ruleta es truca.
+        window.addEventListener('keydown', (e) => {
+            if (e.key === 't' || e.key === 'T') {
+                trucat = true;
+                console.log("Mode trucat ACTIVAT discretament.");
+            }
+        });
+
+        function girarRuleta() {
+            if (jaHaGirat) return; 
+            jaHaGirat = true;
+
+            const ruletaElement = document.getElementById('ruleta');
+            const resultatElement = document.getElementById('resultat');
+            const botó = document.getElementById('botó');
+            
+            botó.disabled = true;
+            resultatElement.innerText = '';
+            
+            // Crear el soroll
+            crearSonRuleta();
+            
+            let targetExamen;
+
+            if (trucat) {
+                // Si has premut la 't', surt l'examen que tu vols
+                targetExamen = examens.find(ex => ex.nom === "Exercici Excel 1.2");
+            } else {
+                // Si no l'has premut, tria un examen totalment aleatori (legal)
+                const indexAleatori = Math.floor(Math.random() * examens.length);
+                targetExamen = examens[indexAleatori];
+            }
+            
+            const voltes = 10 * 360;  // Més voltes per 30 segons
+            const angleMitjà = (targetExamen.angleMin + targetExamen.angleMax) / 2;
+            const angleFinal = voltes + (360 - angleMitjà);
+
+            ruletaElement.style.transform = `rotate(${angleFinal}deg)`;
+
+            setTimeout(() => {
+                resultatElement.innerText = `Ha tocat: ${targetExamen.nom} 🎯`;
+                botó.disabled = false;
+                jaHaGirat = false;
+                trucat = false;
+            }, 30000);  // 30 segons
+        }
+    </script>
+
+</body>
+</html>
